@@ -42,6 +42,15 @@ const ProtectedRoute = ({ children, title }) => {
 };
 
 export const App = () => {
+  React.useEffect(() => {
+    const storedTheme = localStorage.getItem('khc_theme') || 'light';
+    if (storedTheme === 'dark') {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

@@ -54,9 +54,11 @@ export const Login = () => {
 
   const formCardStyle = {
     width: '100%',
-    maxWidth: '500px',
-    padding: '3.5rem 3rem',
+    maxWidth: '540px',
+    padding: '4rem 3.5rem',
     textAlign: 'center',
+    boxShadow: 'var(--shadow-xl)',
+    border: '1px solid var(--border-color)'
   };
 
   return (
@@ -68,7 +70,7 @@ export const Login = () => {
         left: '20%',
         width: '300px',
         height: '300px',
-        background: 'radial-gradient(circle, rgba(197, 168, 128, 0.05) 0%, transparent 70%)',
+        background: 'var(--login-bg-spot-1)',
         zIndex: 0,
         pointerEvents: 'none'
       }} />
@@ -78,7 +80,7 @@ export const Login = () => {
         right: '20%',
         width: '400px',
         height: '400px',
-        background: 'radial-gradient(circle, rgba(30, 45, 74, 0.4) 0%, transparent 70%)',
+        background: 'var(--login-bg-spot-2)',
         zIndex: 0,
         pointerEvents: 'none'
       }} />
