@@ -15,6 +15,7 @@ import Members from './pages/Members';
 import MemberProfile from './pages/MemberProfile';
 import AddMember from './pages/AddMember';
 import EditMember from './pages/EditMember';
+import ImportMembers from './pages/ImportMembers';
 
 // Initialize React Query client for remote state management caching
 const queryClient = new QueryClient({
@@ -83,6 +84,15 @@ export const App = () => {
               element={
                 <ProtectedRoute title="New Member Registration">
                   <AddMember />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/members/import"
+              element={
+                <ProtectedRoute title="Bulk Member Import">
+                  <ImportMembers />
                 </ProtectedRoute>
               }
             />

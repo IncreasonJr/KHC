@@ -32,6 +32,14 @@ export const MemberForm = ({ onSubmit, defaultValues = {}, isLoading = false }) 
     }
   });
 
+  // Sync photoUrl state and form values if defaultValues updates asynchronously
+  React.useEffect(() => {
+    if (defaultValues.photo_url) {
+      setPhotoUrl(defaultValues.photo_url);
+      setValue('photo_url', defaultValues.photo_url);
+    }
+  }, [defaultValues.photo_url, setValue]);
+
   // Dropzone Setup for image uploads
   const onDrop = async (acceptedFiles) => {
     const file = acceptedFiles[0];
@@ -238,11 +246,11 @@ export const MemberForm = ({ onSubmit, defaultValues = {}, isLoading = false }) 
       </div>
 
       <div className="form-group" style={{ marginBottom: '2rem' }}>
-        <label className="form-label">Administrative Notes</label>
+        <label className="form-label">Administrative Notes (Optional)</label>
         <textarea
           className="form-control"
           rows="4"
-          placeholder="Add details on background check, family details, counseling history, or special skills..."
+          placeholder="Optional details on background check, family details, counseling history, or special skills..."
           {...register('notes')}
           style={{ resize: 'vertical' }}
         />

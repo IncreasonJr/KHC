@@ -192,16 +192,43 @@ export const memberService = {
     }
   },
 
-  // Upload photo using Base64 data URL
+  // Upload and compress profile photo to square data URL avatar (max 400x400)
   async uploadPhoto(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve(reader.result);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to JPEG with 0.85 quality (~30-50KB)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to process image file format.'));
+        img.src = event.target.result;
       };
-      reader.onerror = () => {
-        reject(new Error('Failed to read and process profile image file'));
-      };
+      reader.onerror = () => reject(new Error('Failed to read image file.'));
       reader.readAsDataURL(file);
     });
   }

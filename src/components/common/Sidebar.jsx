@@ -7,7 +7,8 @@ import {
   UserPlus, 
   LogOut, 
   Church, 
-  ChevronLeft
+  ChevronLeft,
+  UploadCloud
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -28,6 +29,7 @@ export const Sidebar = ({ isOpen, toggleSidebar }) => {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Members', path: '/members', icon: Users },
     { name: 'Add Member', path: '/members/add', icon: UserPlus },
+    { name: 'Import Members', path: '/members/import', icon: UploadCloud },
   ];
 
   const sidebarStyle = {

@@ -95,6 +95,116 @@ export const givingService = {
     }
   },
 
+  // Fetch monthly giving breakdown for member
+  async getMonthlyGiving(memberId, year = new Date().getFullYear()) {
+    try {
+      const res = await fetch(`/api/members/${memberId}/giving/monthly?year=${year}`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for getMonthlyGiving:', err.message);
+      const giving = getMockGiving().filter(g => g.member_id === memberId);
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const monthlyMap = {};
+      months.forEach((name, i) => {
+        monthlyMap[i + 1] = { month: name, monthNumber: i + 1, tithe: 0, welfare: 0, total: 0, transactionCount: 0 };
+      });
+      let ytdTithe = 0;
+      let ytdWelfare = 0;
+      giving.forEach(g => {
+        const d = new Date(g.date);
+        if (d.getFullYear() === parseInt(year)) {
+          const mNum = d.getMonth() + 1;
+          const amt = parseFloat(g.amount);
+          monthlyMap[mNum].transactionCount += 1;
+          monthlyMap[mNum].total += amt;
+          if ((g.category || '').toLowerCase().includes('tithe')) {
+            monthlyMap[mNum].tithe += amt;
+            ytdTithe += amt;
+          } else {
+            monthlyMap[mNum].welfare += amt;
+            ytdWelfare += amt;
+          }
+        }
+      });
+      return {
+        memberId,
+        year,
+        monthlyGiving: Object.values(monthlyMap),
+        yearToDate: { tithe: ytdTithe, welfare: ytdWelfare, total: ytdTithe + ytdWelfare }
+      };
+    }
+  },
+
+  // Fetch giving summary metrics for member
+  async getGivingSummary(memberId) {
+    try {
+      const res = await fetch(`/api/members/${memberId}/giving/summary`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for getGivingSummary:', err.message);
+      const giving = getMockGiving().filter(g => g.member_id === memberId);
+      let totalTithes = 0;
+      let totalWelfare = 0;
+      let lastGivingDate = null;
+      const activeMonths = new Set();
+      const currentYear = new Date().getFullYear();
+      let thisYearTithes = 0;
+      let thisYearWelfare = 0;
+
+      giving.forEach(g => {
+        const amt = parseFloat(g.amount);
+        const d = new Date(g.date);
+        activeMonths.add(g.date.substring(0, 7));
+        if (!lastGivingDate || g.date > lastGivingDate) lastGivingDate = g.date;
+        if ((g.category || '').toLowerCase().includes('tithe')) {
+          totalTithes += amt;
+          if (d.getFullYear() === currentYear) thisYearTithes += amt;
+        } else {
+          totalWelfare += amt;
+          if (d.getFullYear() === currentYear) thisYearWelfare += amt;
+        }
+      });
+      const totalGiving = totalTithes + totalWelfare;
+      return {
+        totalTithes,
+        totalWelfare,
+        lastGivingDate,
+        totalGiving,
+        averageMonthly: activeMonths.size ? totalGiving / activeMonths.size : 0,
+        thisYearTithes,
+        thisYearWelfare
+      };
+    }
+  },
+
+  // Export member giving history to CSV file download
+  async exportGivingHistory(memberId, format = 'csv') {
+    const records = await this.getGivingRecords(memberId);
+    if (!records || records.length === 0) {
+      throw new Error('No giving records found to export for this member.');
+    }
+    const headers = ['Record ID', 'Date', 'Category', 'Amount (GH₵)', 'Payment Method', 'Notes'];
+    const rows = records.map(r => [
+      r.id,
+      r.date,
+      r.category,
+      r.amount,
+      r.payment_method,
+      `"${(r.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `giving_history_${memberId}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  },
+
   // Add giving record
   async createGiving(givingData) {
     try {

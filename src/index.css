@@ -1,4 +1,5 @@
 /* /home/caleb/Desktop/PROJECTS/KHC/src/index.css */
+@import './styles/responsive.css';
 
 /* Core Design Tokens & Theme Variables */
 :root {

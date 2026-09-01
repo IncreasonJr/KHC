@@ -1,5 +1,5 @@
 // /home/caleb/Desktop/PROJECTS/KHC/src/pages/MemberProfile.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -10,47 +10,68 @@ import {
   Edit2, 
   Trash2, 
   Plus, 
-  DollarSign, 
   AlertCircle,
   Clock,
   BookOpen,
-  DollarSign as MoneyIcon
+  DollarSign as MoneyIcon,
+  Download,
+  BarChart2,
+  List
 } from 'lucide-react';
-import { 
-  useMember, 
-  useGiving, 
-  useCreateGiving, 
-  useDeleteMember 
-} from '../hooks/useMembers';
+import { useMember, useGiving, useDeleteMember } from '../hooks/useMembers';
 import { getInitials, getAvatarBg, formatDate, formatCurrency } from '../utils/helpers';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import GivingSummaryCards from '../components/giving/GivingSummaryCards';
+import MonthlyGivingTable from '../components/giving/MonthlyGivingTable';
+import GivingChart from '../components/giving/GivingChart';
+import AddGivingModal from '../components/giving/AddGivingModal';
+import { givingService } from '../services/givingService';
 
 export const MemberProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Active Tab: 'overview' | 'giving'
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
   // Queries
   const { data: member, isLoading: memberLoading, error: memberError } = useMember(id);
-  const { data: givingRecords = [], isLoading: givingLoading } = useGiving(id);
-  
-  // Mutations
-  const createGivingMutation = useCreateGiving();
+  const { data: givingRecords = [], isLoading: givingLoading, refetch: refetchGiving } = useGiving(id);
   const deleteMemberMutation = useDeleteMember();
 
-  // Giving Form States
-  const [logAmount, setLogAmount] = useState('');
-  const [logCategory, setLogCategory] = useState('Tithes');
-  const [logMethod, setLogMethod] = useState('Cash');
-  const [logNotes, setLogNotes] = useState('');
-  const [formError, setFormError] = useState('');
-  const [formSuccess, setFormSuccess] = useState(false);
-  const [loggingProgress, setLoggingProgress] = useState(false);
+  // Monthly breakdown & summary state
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [yearToDate, setYearToDate] = useState({});
+  const [givingSummary, setGivingSummary] = useState({});
+  const [fetchingBreakdown, setFetchingBreakdown] = useState(false);
+
+  const fetchGivingAnalytics = async () => {
+    if (!id) return;
+    setFetchingBreakdown(true);
+    try {
+      const [monthlyRes, summaryRes] = await Promise.all([
+        givingService.getMonthlyGiving(id, selectedYear),
+        givingService.getGivingSummary(id)
+      ]);
+      setMonthlyData(monthlyRes.monthlyGiving || []);
+      setYearToDate(monthlyRes.yearToDate || {});
+      setGivingSummary(summaryRes || {});
+    } catch (err) {
+      console.error('Failed to fetch member giving analytics:', err);
+    } finally {
+      setFetchingBreakdown(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGivingAnalytics();
+  }, [id, selectedYear]);
 
   const isLoading = memberLoading || givingLoading;
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
+  if (isLoading) return <LoadingSpinner />;
 
   if (memberError || !member) {
     return (
@@ -62,9 +83,6 @@ export const MemberProfile = () => {
       </div>
     );
   }
-
-  // Calculate stats
-  const totalGiven = givingRecords.reduce((sum, r) => sum + parseFloat(r.amount), 0);
 
   const handleDeleteMember = async () => {
     if (window.confirm('Are you sure you want to permanently delete this member? All associated financial records will also be deleted.')) {
@@ -78,45 +96,19 @@ export const MemberProfile = () => {
     }
   };
 
-  const handleGivingSubmit = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess(false);
-
-    const parsedAmount = parseFloat(logAmount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setFormError('Please enter a valid amount greater than $0.00');
-      return;
-    }
-
-    setLoggingProgress(true);
+  const handleExportCSV = async () => {
     try {
-      await createGivingMutation.mutateAsync({
-        member_id: member.id,
-        amount: parsedAmount,
-        category: logCategory,
-        payment_method: logMethod,
-        notes: logNotes,
-        date: new Date().toISOString().split('T')[0] // today's date
-      });
-      
-      setLogAmount('');
-      setLogNotes('');
-      setFormSuccess(true);
-      setTimeout(() => setFormSuccess(false), 3000);
+      await givingService.exportGivingHistory(member.id, 'csv');
     } catch (err) {
-      console.error('Failed to log giving record:', err);
-      setFormError('Failed to record transaction. Please try again.');
-    } finally {
-      setLoggingProgress(false);
+      alert('Failed to export CSV: ' + err.message);
     }
   };
 
   return (
     <div className="animate-fade-in">
       
-      {/* Back & Actions header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      {/* Top Header Navigation & Profile Actions */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <button 
           onClick={() => navigate('/members')}
           className="btn btn-secondary"
@@ -126,285 +118,290 @@ export const MemberProfile = () => {
           <span>Registry Directory</span>
         </button>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="btn btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Plus size={16} />
+            <span>Record Giving</span>
+          </button>
+
           <Link to={`/members/${member.id}/edit`} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Edit2 size={14} />
             <span>Edit Profile</span>
           </Link>
+
           <button onClick={handleDeleteMember} className="btn btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Trash2 size={14} />
-            <span>Delete Member</span>
+            <span className="sm-hide">Delete</span>
           </button>
         </div>
       </div>
 
-      {/* Grid: Profile Details + Financials */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
-        
-        {/* Left Column: Personal info & Administration */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
-          {/* Profile Card */}
-          <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center' }}>
-            {member.photo_url ? (
-              <img
-                src={member.photo_url}
-                alt={`${member.first_name} avatar`}
-                style={{
-                  width: '100px',
-                  height: '100px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '3px solid var(--gold-primary)',
-                  marginBottom: '1.25rem',
-                  boxShadow: 'var(--shadow-md)'
-                }}
-              />
-            ) : (
+      {/* Profile Header Header Card */}
+      <div
+        className="glass-panel"
+        style={{
+          padding: '1.5rem 2rem',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          marginBottom: '2rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.5rem',
+          flexWrap: 'wrap'
+        }}
+      >
+        {member.photo_url ? (
+          <img
+            src={member.photo_url}
+            alt={`${member.first_name} avatar`}
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '3px solid var(--gold-primary)',
+              boxShadow: 'var(--shadow-md)'
+            }}
+          />
+        ) : (
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: getAvatarBg(`${member.first_name} ${member.last_name}`),
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '700',
+            fontSize: '1.75rem',
+            fontFamily: 'var(--font-heading)',
+            border: '1.5px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: 'var(--shadow-md)'
+          }}>
+            {getInitials(member.first_name, member.last_name)}
+          </div>
+        )}
+
+        <div style={{ flex: 1, minWidth: '220px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, fontFamily: 'var(--font-heading)' }}>
+              {member.first_name} {member.last_name}
+            </h2>
+            <span className="badge badge-active" style={{ fontSize: '0.75rem' }}>{member.role}</span>
+            <span className={`badge badge-${member.status.toLowerCase()}`} style={{ fontSize: '0.75rem' }}>{member.status}</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Mail size={14} style={{ color: 'var(--gold-primary)' }} /> {member.email}
+            </span>
+            {member.phone && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Phone size={14} style={{ color: 'var(--gold-primary)' }} /> {member.phone}
+              </span>
+            )}
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <Calendar size={14} style={{ color: 'var(--gold-primary)' }} /> Joined {formatDate(member.join_date)}
+            </span>
+          </div>
+        </div>
+
+        {/* Tab Navigation Buttons */}
+        <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: 'var(--bg-primary)', padding: '0.35rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+          <button
+            onClick={() => setActiveTab('overview')}
+            style={{
+              padding: '0.5rem 1.25rem',
+              borderRadius: 'var(--radius-sm)',
+              border: 'none',
+              backgroundColor: activeTab === 'overview' ? 'var(--gold-primary)' : 'transparent',
+              color: activeTab === 'overview' ? '#ffffff' : 'var(--text-secondary)',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all var(--transition-fast)'
+            }}
+          >
+            <List size={16} />
+            <span>Overview</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('giving')}
+            style={{
+              padding: '0.5rem 1.25rem',
+              borderRadius: 'var(--radius-sm)',
+              border: 'none',
+              backgroundColor: activeTab === 'giving' ? 'var(--gold-primary)' : 'transparent',
+              color: activeTab === 'giving' ? '#ffffff' : 'var(--text-secondary)',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all var(--transition-fast)'
+            }}
+          >
+            <BarChart2 size={16} />
+            <span>Giving History</span>
+          </button>
+        </div>
+      </div>
+
+      {/* TAB CONTENT 1: OVERVIEW */}
+      {activeTab === 'overview' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+          {/* Left: Detailed Information */}
+          <div className="glass-panel" style={{ padding: '1.75rem' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-heading)', color: 'var(--gold-primary)', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+              Personal Details & Metadata
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.95rem' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Email Address</span>
+                <span>{member.email}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Telephone / Mobile</span>
+                <span>{member.phone || 'Not registered'}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Residential Address</span>
+                <span>{member.address || 'No residential address registered'}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Date of Birth</span>
+                <span>{member.date_of_birth ? formatDate(member.date_of_birth) : 'Unspecified'}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Membership Role</span>
+                <span>{member.role} ({member.status})</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Notes & Financial Snapshot */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Financial Summary Card */}
+            <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
               <div style={{
-                width: '100px',
-                height: '100px',
+                width: '52px',
+                height: '52px',
                 borderRadius: '50%',
-                background: getAvatarBg(`${member.first_name} ${member.last_name}`),
-                color: '#fff',
+                background: 'rgba(37, 99, 235, 0.1)',
+                color: 'var(--gold-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: '700',
-                fontSize: '2rem',
-                fontFamily: 'var(--font-heading)',
-                border: '1.5px solid rgba(255, 255, 255, 0.1)',
-                margin: '0 auto 1.25rem auto',
-                boxShadow: 'var(--shadow-md)'
+                border: '1px solid var(--border-color)'
               }}>
-                {getInitials(member.first_name, member.last_name)}
+                <MoneyIcon size={26} />
               </div>
-            )}
-
-            <h3 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>
-              {member.first_name} {member.last_name}
-            </h3>
-            
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-              <span className="badge badge-active" style={{ fontSize: '0.7rem' }}>{member.role}</span>
-              <span className={`badge badge-${member.status.toLowerCase()}`} style={{ fontSize: '0.7rem' }}>{member.status}</span>
+              <div>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>All-Time Total Giving</span>
+                <h3 style={{ fontSize: '1.85rem', fontWeight: 700, margin: 0, fontFamily: 'var(--font-heading)' }} className="gold-gradient-text">
+                  {formatCurrency(givingSummary.totalGiving || 0)}
+                </h3>
+              </div>
             </div>
 
-            {/* Profile Contact specifics */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', textAlign: 'left', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem' }}>
-                <Mail size={16} style={{ color: 'var(--gold-primary)', flexShrink: 0 }} />
-                <span style={{ wordBreak: 'break-all' }}>{member.email}</span>
-              </div>
-
-              {member.phone && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem' }}>
-                  <Phone size={16} style={{ color: 'var(--gold-primary)', flexShrink: 0 }} />
-                  <span>{member.phone}</span>
-                </div>
-              )}
-
-              {member.address && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem' }}>
-                  <MapPin size={16} style={{ color: 'var(--gold-primary)', flexShrink: 0 }} />
-                  <span>{member.address}</span>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem' }}>
-                <Calendar size={16} style={{ color: 'var(--gold-primary)', flexShrink: 0 }} />
-                <span>Joined {formatDate(member.join_date)}</span>
-              </div>
-
-              {member.date_of_birth && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem' }}>
-                  <Clock size={16} style={{ color: 'var(--gold-primary)', flexShrink: 0 }} />
-                  <span>DOB: {formatDate(member.date_of_birth)}</span>
-                </div>
-              )}
-
+            {/* Admin Notes */}
+            <div className="glass-panel" style={{ padding: '1.75rem', flex: 1 }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-heading)', color: 'var(--gold-primary)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <BookOpen size={18} />
+                <span>Administrative Notes</span>
+              </h3>
+              <p style={{ fontSize: '0.92rem', color: member.notes ? 'var(--text-primary)' : 'var(--text-muted)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {member.notes || 'No administrative notes registered for this member.'}
+              </p>
             </div>
           </div>
-
-          {/* Admin Notes Box */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h4 style={{ fontSize: '1rem', color: 'var(--gold-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
-              <BookOpen size={16} />
-              <span>Administrative Notes</span>
-            </h4>
-            <p style={{ fontSize: '0.9rem', color: member.notes ? 'var(--text-primary)' : 'var(--text-muted)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-              {member.notes || 'No administrative notes registered for this member.'}
-            </p>
-          </div>
-
         </div>
+      )}
 
-        {/* Right Column: Financial tracking */}
+      {/* TAB CONTENT 2: GIVING HISTORY */}
+      {activeTab === 'giving' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
-          {/* Financial summary card */}
-          <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', justifyBetween: 'space-between', gap: '1.5rem' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              background: 'rgba(197, 168, 128, 0.1)',
-              color: 'var(--gold-primary)',
-              border: '1.5px solid var(--border-color)'
-            }}>
-              <MoneyIcon size={26} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Cumulative Giving</span>
-              <h3 style={{ fontSize: '2rem', fontWeight: '700', margin: 0, fontFamily: 'var(--font-heading)' }} className="gold-gradient-text">
-                {formatCurrency(totalGiven)}
-              </h3>
-            </div>
-          </div>
-
-          {/* Add Giving contribution */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h4 style={{ fontSize: '1rem', color: 'var(--gold-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
-              <Plus size={16} />
-              <span>Log Contribution</span>
-            </h4>
-
-            {formError && (
-              <p style={{ color: 'var(--color-danger)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.85rem' }}>
-                <AlertCircle size={14} /> {formError}
-              </p>
-            )}
-            {formSuccess && (
-              <p style={{ color: 'var(--color-success)', fontSize: '0.8rem', marginBottom: '0.85rem' }}>
-                ✓ Contribution logged successfully.
-              </p>
-            )}
-
-            <form onSubmit={handleGivingSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
-              
-              <div style={{ flex: '1', minWidth: '120px' }}>
-                <label className="form-label" style={{ marginBottom: '0.35rem' }}>Amount ($)</label>
-                <div style={{ position: 'relative' }}>
-                  <DollarSign size={14} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-control"
-                    placeholder="100.00"
-                    value={logAmount}
-                    onChange={(e) => setLogAmount(e.target.value)}
-                    style={{ paddingLeft: '1.5rem', paddingRight: '0.5rem', height: '38px' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="form-label" style={{ marginBottom: '0.35rem' }}>Category</label>
-                <select 
-                  className="form-control" 
-                  value={logCategory} 
-                  onChange={(e) => setLogCategory(e.target.value)}
-                  style={{ height: '38px', padding: '0 1rem', width: '130px' }}
-                >
-                  <option value="Tithes">Tithes</option>
-                  <option value="Offering">Offering</option>
-                  <option value="Building Fund">Building Fund</option>
-                  <option value="Missions">Missions</option>
-                  <option value="Charity">Charity</option>
-                  <option value="Special Event">Special Event</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label" style={{ marginBottom: '0.35rem' }}>Method</label>
-                <select 
-                  className="form-control" 
-                  value={logMethod} 
-                  onChange={(e) => setLogMethod(e.target.value)}
-                  style={{ height: '38px', padding: '0 1rem', width: '110px' }}
-                >
-                  <option value="Cash">Cash</option>
-                  <option value="Check">Check</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="Online">Online</option>
-                  <option value="Card">Card</option>
-                </select>
-              </div>
-
-              <div style={{ flex: '1 1 100%' }}>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Notes (optional, e.g. check no, donor instructions)"
-                  value={logNotes}
-                  onChange={(e) => setLogNotes(e.target.value)}
-                  style={{ height: '38px' }}
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={loggingProgress} 
-                className="btn btn-primary"
-                style={{ padding: '0 1.25rem', height: '38px', width: '100%' }}
+          {/* Top Actions: Year Filter & CSV Export */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Filter Year:</label>
+              <select
+                className="form-control"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                style={{ width: '120px', height: '38px', padding: '0 0.85rem' }}
               >
-                {loggingProgress ? 'Saving...' : 'Record Transaction'}
+                {[2026, 2025, 2024, 2023].map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={handleExportCSV}
+                className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '38px' }}
+              >
+                <Download size={16} />
+                <span>Export CSV</span>
               </button>
 
-            </form>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="btn btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', height: '38px' }}
+              >
+                <Plus size={16} />
+                <span>Add Giving Record</span>
+              </button>
+            </div>
           </div>
 
-          {/* Giving History Ledger */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h4 style={{ fontSize: '1rem', color: 'var(--gold-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
-              <span>Giving History Ledger</span>
-            </h4>
+          {/* Quick Giving Metric Summary Cards */}
+          <GivingSummaryCards summary={givingSummary} />
 
-            {givingRecords.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', padding: '2rem 0' }}>
-                No contribution transactions logged for this member.
-              </p>
+          {/* Monthly Giving Trend Visual Bar Chart */}
+          <GivingChart monthlyData={monthlyData} />
+
+          {/* Monthly Giving Ledger Table */}
+          <div style={{ marginTop: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'var(--font-heading)', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+              Church Book System Ledger - {selectedYear}
+            </h3>
+            {fetchingBreakdown ? (
+              <LoadingSpinner />
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="custom-table" style={{ width: '100%', fontSize: '0.8rem' }}>
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Category</th>
-                      <th>Method</th>
-                      <th>Notes</th>
-                      <th style={{ textAlignment: 'right' }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {givingRecords.map((record) => (
-                      <tr key={record.id}>
-                        <td>{formatDate(record.date)}</td>
-                        <td>{record.category}</td>
-                        <td style={{ color: 'var(--text-secondary)' }}>{record.payment_method}</td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem', maxWidth: '120px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} title={record.notes}>
-                          {record.notes || '-'}
-                        </td>
-                        <td style={{ fontWeight: '700', color: 'var(--gold-primary)', textAlign: 'right' }}>
-                          {formatCurrency(record.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <MonthlyGivingTable monthlyData={monthlyData} yearToDate={yearToDate} />
             )}
           </div>
 
         </div>
+      )}
 
-      </div>
+      {/* Modal to add new contribution */}
+      <AddGivingModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        memberId={member.id}
+        onSuccess={() => {
+          refetchGiving();
+          fetchGivingAnalytics();
+        }}
+      />
 
     </div>
   );

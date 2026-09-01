@@ -1,0 +1,57 @@
+/* /home/caleb/Desktop/PROJECTS/KHC/src/styles/responsive.css */
+
+/* Mobile Touch Target Guidelines (minimum 44px x 44px) */
+button, input, select, textarea, a.btn {
+  min-height: 44px;
+}
+
+/* Mobile Media Queries (<= 768px) */
+@media (max-width: 768px) {
+  /* Layout Paddings */
+  main {
+    padding: 1rem 0.85rem !important;
+  }
+
+  /* Typography adjustments */
+  h1, h2 {
+    font-size: 1.4rem !important;
+  }
+
+  h3 {
+    font-size: 1.15rem !important;
+  }
+
+  /* Hide non-critical columns on mobile */
+  .sm-hide {
+    display: none !important;
+  }
+
+  /* Form Grids collapse to single column */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stat cards stack in 2-column or 1-column grid */
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Table cards wrapper for mobile scrolling */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Buttons full width on mobile if inside form actions */
+  .mobile-full-width {
+    width: 100% !important;
+  }
+}
+
+/* Tablet Media Queries (769px - 1024px) */
+@media (max-width: 1024px) {
+  .md-hide {
+    display: none !important;
+  }
+}
