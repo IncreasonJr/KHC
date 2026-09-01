@@ -25,6 +25,16 @@ export const Dashboard = () => {
   // Fetch all members query
   const { data: members = [], isLoading } = useMembers();
 
+  const [dbStatus, setDbStatus] = useState(null);
+
+  // Test database connection to Aiven PostgreSQL API
+  useEffect(() => {
+    fetch('/api/test-db')
+      .then((res) => res.json())
+      .then((data) => setDbStatus(data))
+      .catch(() => setDbStatus({ success: false, message: 'Local Storage Fallback Mode' }));
+  }, []);
+
   // Close search dropdown on clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -77,9 +87,36 @@ export const Dashboard = () => {
           <h2 style={{ fontSize: '1.75rem', fontWeight: '700', marginBottom: '0.25rem' }}>
             Welcome Back, <span className="gold-gradient-text">Pastor & Admin</span>
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Kings Heritage Chapel administrative management interface.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+              Kings Heritage Chapel administrative management interface.
+            </p>
+            {dbStatus && (
+              <span 
+                style={{ 
+                  backgroundColor: dbStatus.success ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                  color: dbStatus.success ? 'var(--color-success)' : 'var(--color-warning)',
+                  border: `1px solid ${dbStatus.success ? 'rgba(16, 185, 129, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
+                  fontSize: '0.75rem',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontWeight: '600'
+                }}
+                title={dbStatus.message}
+              >
+                <span style={{ 
+                  width: '6px', 
+                  height: '6px', 
+                  borderRadius: '50%', 
+                  backgroundColor: dbStatus.success ? 'var(--color-success)' : 'var(--color-warning)' 
+                }} />
+                {dbStatus.success ? 'Aiven PostgreSQL Online' : 'Local Storage Fallback'}
+              </span>
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <Link to="/members/add" className="btn btn-primary">

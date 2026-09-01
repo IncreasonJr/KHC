@@ -1,5 +1,4 @@
 // /home/caleb/Desktop/PROJECTS/KHC/src/services/memberService.js
-import { supabase, isSupabaseConfigured } from './supabase';
 
 const MOCK_MEMBERS = [
   {
@@ -100,33 +99,26 @@ const saveMockMembers = (members) => {
 };
 
 export const memberService = {
-  // Fetch list of members
+  // Fetch list of all members
   async getMembers() {
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('members')
-        .select('*')
-        .order('last_name', { ascending: true });
-      if (error) throw error;
-      return data;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 400));
+    try {
+      const res = await fetch('/api/members');
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for getMembers:', err.message);
       return getMockMembers().sort((a, b) => a.last_name.localeCompare(b.last_name));
     }
   },
 
-  // Fetch individual member by primary ID key
+  // Fetch individual member by primary ID
   async getMemberById(id) {
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('members')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (error) throw error;
-      return data;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 250));
+    try {
+      const res = await fetch(`/api/members/${id}`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for getMemberById:', err.message);
       const members = getMockMembers();
       const member = members.find((m) => m.id === id);
       if (!member) throw new Error('Member record not found in system database');
@@ -136,20 +128,20 @@ export const memberService = {
 
   // Add new member record
   async createMember(memberData) {
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('members')
-        .insert([memberData])
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 400));
+    try {
+      const res = await fetch('/api/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(memberData)
+      });
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for createMember:', err.message);
       const members = getMockMembers();
       const newMember = {
         ...memberData,
-        id: crypto.randomUUID ? crypto.randomUUID() : 'mock-uuid-' + Math.random().toString(36).substr(2, 9),
+        id: memberData.id || 'mock-uuid-' + Math.random().toString(36).substring(2, 10),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -161,17 +153,16 @@ export const memberService = {
 
   // Update existing member record by ID
   async updateMember(id, memberData) {
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('members')
-        .update(memberData)
-        .eq('id', id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 450));
+    try {
+      const res = await fetch(`/api/members/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(memberData)
+      });
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for updateMember:', err.message);
       const members = getMockMembers();
       const idx = members.findIndex((m) => m.id === id);
       if (idx === -1) throw new Error('Member record not found in database');
@@ -188,15 +179,12 @@ export const memberService = {
 
   // Remove member from registry
   async deleteMember(id) {
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('members')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+    try {
+      const res = await fetch(`/api/members/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return true;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for deleteMember:', err.message);
       const members = getMockMembers();
       const filtered = members.filter((m) => m.id !== id);
       saveMockMembers(filtered);
@@ -204,39 +192,18 @@ export const memberService = {
     }
   },
 
-  // Upload photo using Supabase Storage or Base64 encoding in local mock storage
+  // Upload photo using Base64 data URL
   async uploadPhoto(file) {
-    if (isSupabaseConfigured) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      // Upload file to Supabase Bucket 'member-photos'
-      const { error: uploadError } = await supabase.storage
-        .from('member-photos')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Fetch public link url
-      const { data } = supabase.storage
-        .from('member-photos')
-        .getPublicUrl(filePath);
-
-      return data.publicUrl;
-    } else {
-      // Return a base64 data URL for local storage preview
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          resolve(reader.result);
-        };
-        reader.onerror = () => {
-          reject(new Error('Failed to read and process profile image file'));
-        };
-        reader.readAsDataURL(file);
-      });
-    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result);
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read and process profile image file'));
+      };
+      reader.readAsDataURL(file);
+    });
   }
 };
 

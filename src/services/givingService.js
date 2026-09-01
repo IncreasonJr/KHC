@@ -1,5 +1,4 @@
 // /home/caleb/Desktop/PROJECTS/KHC/src/services/givingService.js
-import { supabase, isSupabaseConfigured } from './supabase';
 
 const MOCK_GIVING = [
   {
@@ -71,28 +70,13 @@ const saveMockGiving = (giving) => {
 export const givingService = {
   // Fetch giving records, optionally filtered by member
   async getGivingRecords(memberId = null) {
-    if (isSupabaseConfigured) {
-      let query = supabase
-        .from('giving_records')
-        .select(`
-          *,
-          members (
-            first_name,
-            last_name,
-            email
-          )
-        `)
-        .order('date', { ascending: false });
-
-      if (memberId) {
-        query = query.eq('member_id', memberId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      const url = memberId ? `/api/giving?member_id=${encodeURIComponent(memberId)}` : '/api/giving';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for getGivingRecords:', err.message);
       const giving = getMockGiving();
       const members = JSON.parse(localStorage.getItem('khc_mock_members') || '[]');
       
@@ -113,20 +97,20 @@ export const givingService = {
 
   // Add giving record
   async createGiving(givingData) {
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase
-        .from('giving_records')
-        .insert([givingData])
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 400));
+    try {
+      const res = await fetch('/api/giving', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(givingData)
+      });
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for createGiving:', err.message);
       const giving = getMockGiving();
       const newRecord = {
         ...givingData,
-        id: crypto.randomUUID ? crypto.randomUUID() : 'mock-giving-uuid-' + Math.random().toString(36).substr(2, 9),
+        id: givingData.id || 'mock-giving-uuid-' + Math.random().toString(36).substring(2, 10),
         created_at: new Date().toISOString()
       };
       giving.push(newRecord);
@@ -137,15 +121,12 @@ export const givingService = {
 
   // Delete giving record
   async deleteGiving(id) {
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('giving_records')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+    try {
+      const res = await fetch(`/api/giving/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return true;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for deleteGiving:', err.message);
       const giving = getMockGiving();
       const filtered = giving.filter((g) => g.id !== id);
       saveMockGiving(filtered);
@@ -155,43 +136,32 @@ export const givingService = {
 
   // Calculate giving aggregate stats for the dashboard
   async getGivingStats() {
-    if (isSupabaseConfigured) {
-      // In a real application we would pull sums directly using Supabase functions or RPC,
-      // but to ensure consistency we can pull all records and compute, 
-      // or write query aggregates.
-      // Let's retrieve recent giving records and calculate client-side for compatibility.
-      const { data, error } = await supabase
-        .from('giving_records')
-        .select('amount, date, category');
-      
-      if (error) throw error;
-      return this._calculateStatsFromRecords(data);
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 200));
+    try {
+      const res = await fetch('/api/giving/stats');
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage for getGivingStats:', err.message);
       const giving = getMockGiving();
       return this._calculateStatsFromRecords(giving);
     }
   },
 
-  // Private helper to calculate stats
+  // Private helper to calculate stats locally if fallback occurs
   _calculateStatsFromRecords(records) {
     const totalGiving = records.reduce((sum, r) => sum + parseFloat(r.amount), 0);
     
-    // Group by category
     const categoryTotals = {};
     records.forEach(r => {
       categoryTotals[r.category] = (categoryTotals[r.category] || 0) + parseFloat(r.amount);
     });
 
-    // Group by month (last 6 months)
     const monthTotals = {};
     records.forEach(r => {
-      // Date structure: YYYY-MM-DD
-      const monthStr = r.date.substring(0, 7); // YYYY-MM
+      const monthStr = (r.date instanceof Date ? r.date.toISOString() : String(r.date)).substring(0, 7);
       monthTotals[monthStr] = (monthTotals[monthStr] || 0) + parseFloat(r.amount);
     });
 
-    // Order months
     const sortedMonths = Object.keys(monthTotals)
       .sort((a, b) => b.localeCompare(a))
       .slice(0, 6)
