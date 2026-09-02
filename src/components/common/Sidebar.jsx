@@ -85,19 +85,18 @@ export const Sidebar = ({ isOpen, toggleSidebar }) => {
           borderBottom: '1px solid var(--border-color)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              background: 'rgba(197, 168, 128, 0.1)',
-              color: 'var(--gold-primary)',
-              border: '1px solid var(--border-color)'
-            }}>
-              <Church size={20} />
-            </div>
+            <img 
+              src="/khc.jpg" 
+              alt="KHC Logo" 
+              style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '6px',
+                objectFit: 'cover',
+                border: '1.25px solid var(--gold-primary)',
+                boxShadow: 'var(--shadow-sm)'
+              }}
+            />
             <div>
               <span style={{ 
                 fontFamily: 'var(--font-heading)',

@@ -88,19 +88,19 @@ export const Login = () => {
       <div className="glass-panel animate-slide-up" style={{ ...formCardStyle, zIndex: 1 }}>
         
         {/* Church Logo Icon */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '56px',
-          height: '56px',
-          borderRadius: '12px',
-          background: 'rgba(197, 168, 128, 0.1)',
-          color: 'var(--gold-primary)',
-          border: '1.5px solid var(--border-color)',
-          marginBottom: '1.5rem'
-        }}>
-          <Church size={28} />
+        <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'center' }}>
+          <img
+            src="/khc.jpg"
+            alt="Kings Heritage Chapel Logo"
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '10px',
+              objectFit: 'cover',
+              border: '1.5px solid var(--gold-primary)',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          />
         </div>
 
         <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem', fontWeight: '700' }} className="gold-gradient-text">

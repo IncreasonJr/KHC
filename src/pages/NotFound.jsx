@@ -29,22 +29,19 @@ export const NotFound = () => {
         }}
       >
         {/* Church Logo Badge */}
-        <div
-          style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(15, 23, 42, 0.4))',
-            border: '2px solid var(--gold-primary)',
-            color: 'var(--gold-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1.5rem',
-            boxShadow: 'var(--shadow-md)'
-          }}
-        >
-          <Shield size={40} />
+        <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+          <img
+            src="/khc.jpg"
+            alt="KHC Logo"
+            style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '2px solid var(--gold-primary)',
+              boxShadow: 'var(--shadow-md)'
+            }}
+          />
         </div>
 
         <h1
