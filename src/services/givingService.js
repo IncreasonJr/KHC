@@ -1,4 +1,4 @@
-// /home/caleb/Desktop/PROJECTS/KHC/src/services/givingService.js
+import getApiUrl from './api';
 
 const MOCK_GIVING = [
   {
@@ -71,7 +71,7 @@ export const givingService = {
   // Fetch giving records, optionally filtered by member
   async getGivingRecords(memberId = null) {
     try {
-      const url = memberId ? `/api/giving?member_id=${encodeURIComponent(memberId)}` : '/api/giving';
+      const url = memberId ? getApiUrl(`/api/giving?member_id=${encodeURIComponent(memberId)}`) : getApiUrl('/api/giving');
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
@@ -98,7 +98,7 @@ export const givingService = {
   // Fetch monthly giving breakdown for member
   async getMonthlyGiving(memberId, year = new Date().getFullYear()) {
     try {
-      const res = await fetch(`/api/members/${memberId}/giving/monthly?year=${year}`);
+      const res = await fetch(getApiUrl(`/api/members/${memberId}/giving/monthly?year=${year}`));
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -139,7 +139,7 @@ export const givingService = {
   // Fetch giving summary metrics for member
   async getGivingSummary(memberId) {
     try {
-      const res = await fetch(`/api/members/${memberId}/giving/summary`);
+      const res = await fetch(getApiUrl(`/api/members/${memberId}/giving/summary`));
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -208,7 +208,7 @@ export const givingService = {
   // Add giving record
   async createGiving(givingData) {
     try {
-      const res = await fetch('/api/giving', {
+      const res = await fetch(getApiUrl('/api/giving'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(givingData)
@@ -232,7 +232,7 @@ export const givingService = {
   // Delete giving record
   async deleteGiving(id) {
     try {
-      const res = await fetch(`/api/giving/${id}`, { method: 'DELETE' });
+      const res = await fetch(getApiUrl(`/api/giving/${id}`), { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return true;
     } catch (err) {
@@ -247,7 +247,7 @@ export const givingService = {
   // Calculate giving aggregate stats for the dashboard
   async getGivingStats() {
     try {
-      const res = await fetch('/api/giving/stats');
+      const res = await fetch(getApiUrl('/api/giving/stats'));
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
     } catch (err) {

@@ -25,6 +25,7 @@ import GivingSummaryCards from '../components/giving/GivingSummaryCards';
 import MonthlyGivingTable from '../components/giving/MonthlyGivingTable';
 import GivingChart from '../components/giving/GivingChart';
 import AddGivingModal from '../components/giving/AddGivingModal';
+import ConfirmModal from '../components/common/ConfirmModal';
 import { givingService } from '../services/givingService';
 
 export const MemberProfile = () => {
@@ -84,15 +85,16 @@ export const MemberProfile = () => {
     );
   }
 
-  const handleDeleteMember = async () => {
-    if (window.confirm('Are you sure you want to permanently delete this member? All associated financial records will also be deleted.')) {
-      try {
-        await deleteMemberMutation.mutateAsync(member.id);
-        navigate('/members');
-      } catch (err) {
-        console.error('Failed to delete member:', err);
-        alert('Could not delete member record: ' + err.message);
-      }
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await deleteMemberMutation.mutateAsync(member.id);
+      setShowDeleteModal(false);
+      navigate('/members');
+    } catch (err) {
+      console.error('Failed to delete member:', err);
+      alert('Could not delete member record: ' + err.message);
     }
   };
 
@@ -133,7 +135,7 @@ export const MemberProfile = () => {
             <span>Edit Profile</span>
           </Link>
 
-          <button onClick={handleDeleteMember} className="btn btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={() => setShowDeleteModal(true)} className="btn btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Trash2 size={14} />
             <span className="sm-hide">Delete</span>
           </button>
@@ -401,6 +403,18 @@ export const MemberProfile = () => {
           refetchGiving();
           fetchGivingAnalytics();
         }}
+      />
+
+      {/* Confirmation modal for deleting member record */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title={`Delete Member ${member?.first_name} ${member?.last_name}?`}
+        message="Are you sure you want to permanently delete this member record? All associated financial contributions and administrative notes will also be deleted."
+        confirmText="Delete Member"
+        type="danger"
+        isLoading={deleteMemberMutation.isPending}
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setShowDeleteModal(false)}
       />
 
     </div>

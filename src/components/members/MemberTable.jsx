@@ -3,14 +3,16 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Eye, Edit2, Trash2, Filter, AlertCircle } from 'lucide-react';
 import { getInitials, getAvatarBg, formatDate } from '../../utils/helpers';
+import ConfirmModal from '../common/ConfirmModal';
 
-export const MemberTable = ({ members = [], onDelete }) => {
+export const MemberTable = ({ members = [], onDelete, searchQuery = '', roleFilter = '', statusFilter = '' }) => {
   const navigate = useNavigate();
+  const [deleteTarget, setDeleteTarget] = useState(null);
   
   // States for query, filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [internalSearchQuery, setInternalSearchQuery] = useState(searchQuery);
+  const [internalRoleFilter, setInternalRoleFilter] = useState(roleFilter);
+  const [internalStatusFilter, setInternalStatusFilter] = useState(statusFilter);
 
   // Handle row clicks to navigate to profile details page
   const handleRowClick = (id) => {
@@ -22,10 +24,15 @@ export const MemberTable = ({ members = [], onDelete }) => {
     navigate(`/members/${id}/edit`);
   };
 
-  const handleDeleteClick = (e, id) => {
+  const handleDeleteClick = (e, member) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to permanently delete this member? All associated financial records will also be deleted.')) {
-      onDelete(id);
+    setDeleteTarget(member);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteTarget) {
+      await onDelete(deleteTarget.id);
+      setDeleteTarget(null);
     }
   };
 
@@ -250,7 +257,7 @@ export const MemberTable = ({ members = [], onDelete }) => {
                         <Edit2 size={14} />
                       </button>
                       <button
-                        onClick={(e) => handleDeleteClick(e, member.id)}
+                        onClick={(e) => handleDeleteClick(e, member)}
                         className="btn btn-danger"
                         style={{ padding: '0.4rem', borderRadius: '4px' }}
                         title="Delete Record"
@@ -266,6 +273,16 @@ export const MemberTable = ({ members = [], onDelete }) => {
           </table>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        title={`Delete Member ${deleteTarget?.first_name} ${deleteTarget?.last_name}?`}
+        message="Are you sure you want to permanently delete this member record? All associated financial contributions and administrative notes will also be deleted."
+        confirmText="Delete Member"
+        type="danger"
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
 
     </div>
   );

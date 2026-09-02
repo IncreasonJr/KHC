@@ -250,6 +250,31 @@ app.post('/api/members/import', async (req, res) => {
 // 3. CORE MEMBERS ENDPOINTS
 // ----------------------------------------------------
 
+// GET /api/members/stats - Member stats summary
+app.get('/api/members/stats', async (req, res) => {
+  try {
+    const sql = `
+      SELECT 
+        COUNT(*) as total_members,
+        COUNT(*) FILTER (WHERE status = 'Active') as active_members,
+        COUNT(*) FILTER (WHERE status = 'Visitor') as visitors,
+        COUNT(*) FILTER (WHERE role != 'Member') as ministry_leaders
+      FROM members;
+    `;
+    const result = await query(sql);
+    const row = result.rows[0] || {};
+
+    res.json({
+      totalMembers: parseInt(row.total_members || 0),
+      activeMembers: parseInt(row.active_members || 0),
+      visitors: parseInt(row.visitors || 0),
+      ministryLeaders: parseInt(row.ministry_leaders || 0)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/members - Fetch all members
 app.get('/api/members', async (req, res) => {
   try {

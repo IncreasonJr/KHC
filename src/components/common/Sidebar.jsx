@@ -54,7 +54,7 @@ export const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   return (
     <>
-      {/* Sidebar Overlay on mobile */}
+      {/* Sidebar Overlay (Blurs background page and closes on outside click across all modes) */}
       {isOpen && (
         <div 
           onClick={toggleSidebar} 
@@ -64,11 +64,14 @@ export const Sidebar = ({ isOpen, toggleSidebar }) => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(2px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.45)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
             zIndex: 999,
+            cursor: 'pointer',
+            transition: 'opacity var(--transition-normal)'
           }}
-          className="md-hide"
+          title="Click to close sidebar"
         />
       )}
 

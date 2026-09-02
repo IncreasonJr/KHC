@@ -16,6 +16,8 @@ import MemberProfile from './pages/MemberProfile';
 import AddMember from './pages/AddMember';
 import EditMember from './pages/EditMember';
 import ImportMembers from './pages/ImportMembers';
+import NotFound from './pages/NotFound';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Initialize React Query client for remote state management caching
 const queryClient = new QueryClient({
@@ -55,70 +57,81 @@ export const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public route */}
-            <Route path="/login" element={<Login />} />
+        <ErrorBoundary>
+          <BrowserRouter>
+            <Routes>
+              {/* Public route */}
+              <Route path="/login" element={<Login />} />
 
-            {/* Protected dashboard views */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute title="Administrative Overview">
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route
-              path="/members"
-              element={
-                <ProtectedRoute title="Congregational Registry">
-                  <Members />
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route
-              path="/members/add"
-              element={
-                <ProtectedRoute title="New Member Registration">
-                  <AddMember />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected dashboard views */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute title="Administrative Overview">
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute title="Administrative Overview">
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/members/import"
-              element={
-                <ProtectedRoute title="Bulk Member Import">
-                  <ImportMembers />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/members"
+                element={
+                  <ProtectedRoute title="Congregant Directory">
+                    <Members />
+                  </ProtectedRoute>
+                }
+              />
+              
+              <Route
+                path="/members/add"
+                element={
+                  <ProtectedRoute title="New Member Registration">
+                    <AddMember />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/members/:id"
-              element={
-                <ProtectedRoute title="Member Profile Records">
-                  <MemberProfile />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/members/import"
+                element={
+                  <ProtectedRoute title="Bulk Member Import">
+                    <ImportMembers />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/members/:id/edit"
-              element={
-                <ProtectedRoute title="Update Member Profile">
-                  <EditMember />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/members/:id"
+                element={
+                  <ProtectedRoute title="Member Profile Records">
+                    <MemberProfile />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Global fallback route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+              <Route
+                path="/members/:id/edit"
+                element={
+                  <ProtectedRoute title="Update Member Profile">
+                    <EditMember />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Global 404 Error page route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ErrorBoundary>
       </AuthProvider>
     </QueryClientProvider>
   );

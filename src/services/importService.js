@@ -1,4 +1,4 @@
-// /home/caleb/Desktop/PROJECTS/KHC/src/services/importService.js
+import getApiUrl from './api';
 
 export const importService = {
   /**
@@ -8,7 +8,7 @@ export const importService = {
    */
   async validateFile(rows) {
     try {
-      const res = await fetch('/api/members/import/validate', {
+      const res = await fetch(getApiUrl('/api/members/import/validate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows })
@@ -48,7 +48,7 @@ export const importService = {
    */
   async uploadFile(validRows, options = { duplicateStrategy: 'update' }) {
     try {
-      const res = await fetch('/api/members/import', {
+      const res = await fetch(getApiUrl('/api/members/import'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows: validRows, duplicateStrategy: options.duplicateStrategy })
@@ -83,7 +83,7 @@ export const importService = {
    * Trigger CSV template download
    */
   downloadTemplate() {
-    window.location.href = '/api/members/import/template';
+    window.location.href = getApiUrl('/api/members/import/template');
   }
 };
 

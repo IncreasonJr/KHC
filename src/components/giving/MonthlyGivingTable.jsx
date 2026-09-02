@@ -15,8 +15,17 @@ export const MonthlyGivingTable = ({ monthlyData = [], yearToDate = {} }) => {
   const totalCount = monthlyData.reduce((acc, m) => acc + (m.transactionCount || 0), 0);
 
   return (
-    <div className="table-container glass-panel" style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-      <table className="custom-table">
+    <div 
+      className="glass-panel" 
+      style={{ 
+        borderRadius: 'var(--radius-md)', 
+        overflowX: 'auto', 
+        WebkitOverflowScrolling: 'touch',
+        width: '100%',
+        maxWidth: '100%' 
+      }}
+    >
+      <table className="custom-table" style={{ minWidth: '580px', width: '100%' }}>
         <thead>
           <tr>
             <th style={{ textAlign: 'left' }}>Month</th>

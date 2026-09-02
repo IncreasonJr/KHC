@@ -1,4 +1,4 @@
-// /home/caleb/Desktop/PROJECTS/KHC/src/services/memberService.js
+import getApiUrl from './api';
 
 const MOCK_MEMBERS = [
   {
@@ -102,7 +102,7 @@ export const memberService = {
   // Fetch list of all members
   async getMembers() {
     try {
-      const res = await fetch('/api/members');
+      const res = await fetch(getApiUrl('/api/members'));
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -111,10 +111,28 @@ export const memberService = {
     }
   },
 
+  // Fetch stats summary
+  async getMemberStats() {
+    try {
+      const res = await fetch(getApiUrl('/api/members/stats'));
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[PostgreSQL DB Warning]: Falling back to local storage stats calculation:', err.message);
+      const members = getMockMembers();
+      return {
+        totalMembers: members.length,
+        activeMembers: members.filter(m => m.status === 'Active').length,
+        visitors: members.filter(m => m.status === 'Visitor').length,
+        ministryLeaders: members.filter(m => m.role && m.role !== 'Member').length
+      };
+    }
+  },
+
   // Fetch individual member by primary ID
   async getMemberById(id) {
     try {
-      const res = await fetch(`/api/members/${id}`);
+      const res = await fetch(getApiUrl(`/api/members/${id}`));
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -129,7 +147,7 @@ export const memberService = {
   // Add new member record
   async createMember(memberData) {
     try {
-      const res = await fetch('/api/members', {
+      const res = await fetch(getApiUrl('/api/members'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(memberData)
@@ -154,7 +172,7 @@ export const memberService = {
   // Update existing member record by ID
   async updateMember(id, memberData) {
     try {
-      const res = await fetch(`/api/members/${id}`, {
+      const res = await fetch(getApiUrl(`/api/members/${id}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(memberData)
@@ -180,7 +198,7 @@ export const memberService = {
   // Remove member from registry
   async deleteMember(id) {
     try {
-      const res = await fetch(`/api/members/${id}`, { method: 'DELETE' });
+      const res = await fetch(getApiUrl(`/api/members/${id}`), { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return true;
     } catch (err) {
