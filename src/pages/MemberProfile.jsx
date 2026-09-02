@@ -36,6 +36,7 @@ export const MemberProfile = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Queries
   const { data: member, isLoading: memberLoading, error: memberError } = useMember(id);
@@ -84,8 +85,6 @@ export const MemberProfile = () => {
       </div>
     );
   }
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const handleDeleteConfirm = async () => {
     try {
