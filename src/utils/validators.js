@@ -2,10 +2,10 @@
 
 export const validators = {
   email: {
-    required: 'Email address is required',
-    pattern: {
-      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-      message: 'Please enter a valid email address (e.g. name@domain.com)'
+    validate: (value) => {
+      if (!value || value.trim() === '') return true;
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      return emailRegex.test(value) || 'Please enter a valid email address (e.g. name@domain.com)';
     }
   },
   phone: {

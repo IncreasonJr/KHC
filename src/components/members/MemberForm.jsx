@@ -157,11 +157,11 @@ export const MemberForm = ({ onSubmit, defaultValues = {}, isLoading = false }) 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
         
         <div className="form-group">
-          <label className="form-label">Email Address *</label>
+          <label className="form-label">Email Address (Optional)</label>
           <input
             type="email"
             className="form-control"
-            placeholder="john.doe@email.com"
+            placeholder="john.doe@email.com (optional)"
             {...register('email', validators.email)}
           />
           {errors.email && <span className="form-error">{errors.email.message}</span>}

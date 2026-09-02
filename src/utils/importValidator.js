@@ -46,9 +46,8 @@ export const validateMemberImports = (rows, existingMembers = []) => {
     // Required Field Validation
     if (!row.first_name) rowErrors.push('First name is required.');
     if (!row.last_name) rowErrors.push('Last name is required.');
-    if (!row.email) {
-      rowErrors.push('Email address is required.');
-    } else {
+
+    if (row.email && row.email.trim() !== '') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(row.email.trim())) {
         rowErrors.push(`Invalid email format (${row.email}).`);

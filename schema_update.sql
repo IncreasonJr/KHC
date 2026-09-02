@@ -10,3 +10,6 @@ CREATE INDEX IF NOT EXISTS idx_giving_member_category ON giving_records (member_
 
 -- 3. Composite index for duplicate detection on email and phone
 CREATE INDEX IF NOT EXISTS idx_members_phone ON members (phone);
+
+-- 4. Make email column optional
+ALTER TABLE members ALTER COLUMN email DROP NOT NULL;

@@ -12,7 +12,7 @@ export const ColumnMapper = ({ fileHeaders = [], onMappingConfirmed }) => {
   const schemaFields = [
     { key: 'first_name', label: 'First Name', required: true },
     { key: 'last_name', label: 'Last Name / Surname', required: true },
-    { key: 'email', label: 'Email Address', required: true },
+    { key: 'email', label: 'Email Address (Optional)', required: false },
     { key: 'phone', label: 'Phone Number', required: false },
     { key: 'address', label: 'Residential Address', required: false },
     { key: 'date_of_birth', label: 'Date of Birth (YYYY-MM-DD)', required: false },

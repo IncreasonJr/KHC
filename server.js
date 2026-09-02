@@ -468,7 +468,7 @@ app.post('/api/members', async (req, res) => {
       id,
       first_name,
       last_name,
-      email,
+      email && email.trim() !== '' ? email.trim() : null,
       phone || null,
       address || null,
       date_of_birth || null,
@@ -508,7 +508,7 @@ app.put('/api/members/:id', async (req, res) => {
       UPDATE members 
       SET first_name = COALESCE($1, first_name),
           last_name = COALESCE($2, last_name),
-          email = COALESCE($3, email),
+          email = $3,
           phone = COALESCE($4, phone),
           address = COALESCE($5, address),
           date_of_birth = COALESCE($6, date_of_birth),
@@ -525,7 +525,7 @@ app.put('/api/members/:id', async (req, res) => {
     const values = [
       first_name,
       last_name,
-      email,
+      email && email.trim() !== '' ? email.trim() : null,
       phone,
       address,
       date_of_birth,
