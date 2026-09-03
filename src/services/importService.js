@@ -1,4 +1,4 @@
-import getApiUrl from './api';
+import apiFetch, { getApiUrl } from './api';
 
 export const importService = {
   /**
@@ -8,9 +8,8 @@ export const importService = {
    */
   async validateFile(rows) {
     try {
-      const res = await fetch(getApiUrl('/api/members/import/validate'), {
+      const res = await apiFetch('/api/members/import/validate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows })
       });
       if (!res.ok) throw new Error(`Validation HTTP error ${res.status}`);
@@ -23,7 +22,7 @@ export const importService = {
       const validRows = [];
       const invalidRows = [];
       rows.forEach((r, idx) => {
-        if (r.first_name && r.last_name && r.email) {
+        if (r.first_name && r.last_name) {
           validRows.push({ rowNum: idx + 1, data: { ...r, isDuplicateInDB: emails.has((r.email || '').toLowerCase()) } });
         } else {
           invalidRows.push({ rowNum: idx + 1, data: r, errors: ['Missing required fields'] });
@@ -48,9 +47,8 @@ export const importService = {
    */
   async uploadFile(validRows, options = { duplicateStrategy: 'update' }) {
     try {
-      const res = await fetch(getApiUrl('/api/members/import'), {
+      const res = await apiFetch('/api/members/import', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows: validRows, duplicateStrategy: options.duplicateStrategy })
       });
       if (!res.ok) throw new Error(`Import HTTP error ${res.status}`);

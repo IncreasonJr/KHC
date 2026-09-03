@@ -15,7 +15,7 @@ import {
 import { useMembers } from '../hooks/useMembers';
 import { formatDate, getAvatarBg, getInitials } from '../utils/helpers';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import getApiUrl from '../services/api';
+import apiFetch from '../services/api';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ export const Dashboard = () => {
 
   // Test database connection to Aiven PostgreSQL API
   useEffect(() => {
-    fetch(getApiUrl('/api/test-db'))
+    apiFetch('/api/test-db')
       .then((res) => res.json())
       .then((data) => setDbStatus(data))
       .catch(() => setDbStatus({ success: false, message: 'Local Storage Fallback Mode' }));

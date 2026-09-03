@@ -1,4 +1,4 @@
-import getApiUrl from './api';
+import apiFetch from './api';
 
 const MOCK_MEMBERS = [
   {
@@ -102,7 +102,7 @@ export const memberService = {
   // Fetch list of all members
   async getMembers() {
     try {
-      const res = await fetch(getApiUrl('/api/members'));
+      const res = await apiFetch('/api/members');
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -114,7 +114,7 @@ export const memberService = {
   // Fetch stats summary
   async getMemberStats() {
     try {
-      const res = await fetch(getApiUrl('/api/members/stats'));
+      const res = await apiFetch('/api/members/stats');
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -132,7 +132,7 @@ export const memberService = {
   // Fetch individual member by primary ID
   async getMemberById(id) {
     try {
-      const res = await fetch(getApiUrl(`/api/members/${id}`));
+      const res = await apiFetch(`/api/members/${id}`);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -147,9 +147,8 @@ export const memberService = {
   // Add new member record
   async createMember(memberData) {
     try {
-      const res = await fetch(getApiUrl('/api/members'), {
+      const res = await apiFetch('/api/members', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(memberData)
       });
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -172,9 +171,8 @@ export const memberService = {
   // Update existing member record by ID
   async updateMember(id, memberData) {
     try {
-      const res = await fetch(getApiUrl(`/api/members/${id}`), {
+      const res = await apiFetch(`/api/members/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(memberData)
       });
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -198,7 +196,7 @@ export const memberService = {
   // Remove member from registry
   async deleteMember(id) {
     try {
-      const res = await fetch(getApiUrl(`/api/members/${id}`), { method: 'DELETE' });
+      const res = await apiFetch(`/api/members/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       return true;
     } catch (err) {
